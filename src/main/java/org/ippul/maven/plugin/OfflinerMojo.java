@@ -61,7 +61,7 @@ public class OfflinerMojo extends AbstractMojo {
 
     public void execute() throws MojoExecutionException {
         if(outputDirectory == null || outputDirectory.isEmpty()){
-            outputDirectory = project.getBasedir().toPath().toString() + "/target/repository/";
+            outputDirectory = project.getBasedir().toPath().toString() + "/target/classes/repository/";
             Paths.get(outputDirectory).toFile().mkdir();
         }
 
