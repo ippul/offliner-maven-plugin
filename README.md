@@ -1,6 +1,7 @@
 # filezip-maven-plugin
 A Maven plugin that creates a zip file.
 usage example 
+```
            <plugin>
                 <groupId>org.ippul.maven.plugin</groupId>
                 <artifactId>offliner-maven-plugin</artifactId>
@@ -21,3 +22,4 @@ usage example
                     </execution>
                 </executions>
             </plugin>
+```
