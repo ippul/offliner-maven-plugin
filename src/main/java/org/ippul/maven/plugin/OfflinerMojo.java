@@ -17,9 +17,7 @@
 
 package org.ippul.maven.plugin;
 
-import java.io.File;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -32,6 +30,8 @@ import org.apache.maven.project.MavenProject;
 import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenArtifactInfo;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenResolvedArtifact;
+import org.jboss.shrinkwrap.resolver.api.maven.MavenResolverSystem;
+import org.jboss.shrinkwrap.resolver.api.maven.MavenStrategyStage;
 
 /**
  * @author cluppi@redhat.com
@@ -57,47 +57,58 @@ public class OfflinerMojo extends AbstractMojo {
     MavenProject project;
 
     public void execute() throws MojoExecutionException {
-        if(outputDirectory == null || outputDirectory.isEmpty()){
+        if (outputDirectory == null || outputDirectory.isEmpty()) {
             outputDirectory = project.getBasedir().toPath().toString() + "/target/classes/repository/";
             Paths.get(outputDirectory).toFile().mkdir();
         }
         System.setProperty("maven.repo.local", outputDirectory);
+        getLog().info("Start populating " + outputDirectory + "maven repository");
         readDependecies(getMavenResolvedArtifact(artifacts));
+        getLog().info("End populating " + outputDirectory + "maven repository");
     }
 
     private void readDependecies(final MavenArtifactInfo... artifacts) {
         for (final MavenArtifactInfo artifact : artifacts) {
+            getLog().info("Downloading " + getGav(artifact) + " to " + outputDirectory);
             populateMavenRepository(getGav(artifact));
             readDependecies(artifact.getDependencies());
         }
     }
 
-    private String getGav(final MavenArtifactInfo artifact){
+    private String getGav(final MavenArtifactInfo artifact) {
         return artifact.getCoordinate().getGroupId() + ":" + //
-            artifact.getCoordinate().getArtifactId() + ":" + //
-            artifact.getCoordinate().getVersion();
+                artifact.getCoordinate().getArtifactId() + ":" + //
+                artifact.getCoordinate().getVersion();
     }
 
     private MavenResolvedArtifact[] getMavenResolvedArtifact(final List<String> gavs) {
         MavenResolvedArtifact[] result = null;
-        for(String gav : gavs){
-            result = ArrayUtils.addAll(result,
-            Maven //
-            .configureResolver() //
-            .fromFile(settingsFile) //
-            .resolve(gav) //
-            .withTransitivity()
-            .asResolvedArtifact());
+        for (final String gav : gavs) {
+            if(settingsFile!= null && !settingsFile.isEmpty()) {
+                getLog().debug("getMavenResolvedArtifact using provided settings.xml for GAV " + gav);
+                result = ArrayUtils.addAll(result, Maven //
+                    .configureResolver() //
+                    .fromFile(settingsFile) //
+                    .resolve(gav) //
+                    .withTransitivity().asResolvedArtifact());
+            }else{
+                getLog().debug("getMavenResolvedArtifact using default settings.xml for GAV " + gav);
+                result = ArrayUtils.addAll(result, Maven //
+                    .configureResolver() //
+                    .resolve(gav) //
+                    .withTransitivity().asResolvedArtifact());
+            }
         }
         return result;
     }
 
     private void populateMavenRepository(final String gav) {
-        Maven //
-            .configureResolver() //
-            .fromFile(settingsFile) //
-            .resolve(gav) //
-            .withTransitivity() //
-            .asFile();
+        if(settingsFile!= null && !settingsFile.isEmpty()) {
+            getLog().debug("populateMavenRepository(" + outputDirectory + ") using provided settings.xml for GAV " + gav);
+            Maven.configureResolver().fromFile(settingsFile).resolve(gav).withTransitivity().asFile();
+        }else{
+            getLog().debug("populateMavenRepository(" + outputDirectory + ") using default settings.xml for GAV " + gav);
+            Maven.configureResolver().resolve(gav).withTransitivity().asFile();
+        }
     }
 }
