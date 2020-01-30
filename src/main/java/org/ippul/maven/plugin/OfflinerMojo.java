@@ -64,11 +64,7 @@ public class OfflinerMojo extends AbstractMojo {
             outputDirectory = project.getBasedir().toPath().toString() + "/target/classes/repository/";
             Paths.get(outputDirectory).toFile().mkdir();
         }
-
-        getLog().info("1. artifacts " + artifacts);
-
         for (String artifact : artifacts) {
-            getLog().info("2. artifact " + artifact);
             readDependecies(getMavenResolvedArtifact(artifact));
         }
     }
@@ -76,13 +72,7 @@ public class OfflinerMojo extends AbstractMojo {
     private void readDependecies(final MavenResolvedArtifact artifact) {
         final File file = getArtifact(artifact.getCoordinate().getGroupId() + ":"
                 + artifact.getCoordinate().getArtifactId() + ":" + artifact.getCoordinate().getVersion());
-        
-        getLog().info("File " + file.toPath());
-        
         saveInRepo(artifact, file);
-
-        getLog().info("Adding artifact " + artifact.toString());
-
         for (final MavenArtifactInfo dependency : artifact.getDependencies()) {
             readDependecies(getMavenResolvedArtifact(dependency));
         }
@@ -94,15 +84,12 @@ public class OfflinerMojo extends AbstractMojo {
                         + ":" + mavenArtifactInfo.getCoordinate().getVersion());
     }
 
-
-
     private MavenResolvedArtifact getMavenResolvedArtifact(final String gav) {
-
         return Maven //
                 .configureResolver() //
                 .fromFile(settingsFile) //
                 .resolve(gav) //
-                .withTransitivity()//
+                .withTransitivity()
                 .asSingleResolvedArtifact();
     }
 
