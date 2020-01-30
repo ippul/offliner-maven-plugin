@@ -19,15 +19,16 @@ package org.ippul.maven.plugin;
 
 import java.io.File;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
-import org.codehaus.plexus.util.FileUtils;
 import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenArtifactInfo;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenResolvedArtifact;
@@ -41,11 +42,8 @@ public class OfflinerMojo extends AbstractMojo {
     @Parameter(required = true)
     private List<String> artifacts;
 
-    @Parameter(required = true)
+    @Parameter(required = false)
     private String settingsFile;
-
-    @Parameter(required = true)
-    private String localMavenRepository;
 
     @Parameter(required = false)
     private String outputDirectory;
@@ -63,15 +61,13 @@ public class OfflinerMojo extends AbstractMojo {
             outputDirectory = project.getBasedir().toPath().toString() + "/target/classes/repository/";
             Paths.get(outputDirectory).toFile().mkdir();
         }
-        for (String artifact : artifacts) {
-            readDependecies(getMavenResolvedArtifact(artifact));
-        }
+        System.setProperty("maven.repo.local", outputDirectory);
+        readDependecies(getMavenResolvedArtifact(artifacts));
     }
 
     private void readDependecies(final MavenArtifactInfo... artifacts) {
         for (final MavenArtifactInfo artifact : artifacts) {
-            final File[] files = getArtifact(getGav(artifact));
-            saveInRepo(files);
+            populateMavenRepository(getGav(artifact));
             readDependecies(artifact.getDependencies());
         }
     }
@@ -82,36 +78,26 @@ public class OfflinerMojo extends AbstractMojo {
             artifact.getCoordinate().getVersion();
     }
 
-    private MavenResolvedArtifact[] getMavenResolvedArtifact(final String gav) {
-        return Maven //
-                .configureResolver() //
-                .fromFile(settingsFile) //
-                .resolve(gav) //
-                .withTransitivity()
-                .asResolvedArtifact();
-    }
-
-    private File[] getArtifact(final String gav) {
-        return Maven //
-                .configureResolver() //
-                .fromFile(settingsFile) //
-                .resolve(gav) //
-                .withTransitivity() //
-                .asFile();
-    }
-
-    private void saveInRepo(final File... files) {
-        for(File file : files){
-            final String basePath = file.toPath().toFile().getParentFile().toString().replaceFirst(localMavenRepository, outputDirectory);
-            if(!Paths.get(basePath).toFile().exists()){
-                Paths.get(basePath).toFile().mkdir();
-            }
-            try {
-                FileUtils.copyDirectory(Paths.get(file.getParent()).toFile(), Paths.get(basePath + "/").toFile());
-            } catch(Exception e){
-                e.printStackTrace();
-            }
+    private MavenResolvedArtifact[] getMavenResolvedArtifact(final List<String> gavs) {
+        MavenResolvedArtifact[] result = null;
+        for(String gav : gavs){
+            result = ArrayUtils.addAll(result,
+            Maven //
+            .configureResolver() //
+            .fromFile(settingsFile) //
+            .resolve(gav) //
+            .withTransitivity()
+            .asResolvedArtifact());
         }
+        return result;
     }
 
+    private void populateMavenRepository(final String gav) {
+        Maven //
+            .configureResolver() //
+            .fromFile(settingsFile) //
+            .resolve(gav) //
+            .withTransitivity() //
+            .asFile();
+    }
 }
