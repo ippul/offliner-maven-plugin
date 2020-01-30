@@ -13,11 +13,11 @@ usage example
             <goal>offliner</goal>
          </goals>
          <configuration>
-            <settingsFile>/Users/claudio/.m2/settings.xml</settingsFile>
-            <localMavenRepository>/Users/claudio/.m2/repository</localMavenRepository>
+            <settingsFile>src/test/resources/org/ippul/maven/plugin/settings.xml</settingsFile>
+            <outputDirectory>target/test-classes/repository/</outputDirectory>
             <artifacts>
-               <gav>com.company:evaluation:1.0.0-SNAPSHOT</gav>
-               <gav>com.company:evaluation:2.0.0-SNAPSHOT</gav>
+               <gav>org.jboss.javaee:jboss-transaction-api:1.0.1.GA</gav>
+               <gav>javax.xml.bind:jaxb-api:2.3.1</gav>
             </artifacts>
          </configuration>
       </execution>
