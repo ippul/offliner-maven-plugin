@@ -58,7 +58,6 @@ public class OfflinerMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project}", required = true, readonly = true)
     MavenProject project;
 
-
     public void execute() throws MojoExecutionException {
         if(outputDirectory == null || outputDirectory.isEmpty()){
             outputDirectory = project.getBasedir().toPath().toString() + "/target/classes/repository/";
@@ -69,48 +68,49 @@ public class OfflinerMojo extends AbstractMojo {
         }
     }
 
-    private void readDependecies(final MavenResolvedArtifact artifact) {
-        final File file = getArtifact(artifact.getCoordinate().getGroupId() + ":"
-                + artifact.getCoordinate().getArtifactId() + ":" + artifact.getCoordinate().getVersion());
-        saveInRepo(artifact, file);
-        for (final MavenArtifactInfo dependency : artifact.getDependencies()) {
-            readDependecies(getMavenResolvedArtifact(dependency));
+    private void readDependecies(final MavenArtifactInfo... artifacts) {
+        for (final MavenArtifactInfo artifact : artifacts) {
+            final File[] files = getArtifact(getGav(artifact));
+            saveInRepo(files);
+            readDependecies(artifact.getDependencies());
         }
     }
 
-    private MavenResolvedArtifact getMavenResolvedArtifact(final MavenArtifactInfo mavenArtifactInfo) {
-        return getMavenResolvedArtifact(
-                mavenArtifactInfo.getCoordinate().getGroupId() + ":" + mavenArtifactInfo.getCoordinate().getArtifactId()
-                        + ":" + mavenArtifactInfo.getCoordinate().getVersion());
+    private String getGav(final MavenArtifactInfo artifact){
+        return artifact.getCoordinate().getGroupId() + ":" + //
+            artifact.getCoordinate().getArtifactId() + ":" + //
+            artifact.getCoordinate().getVersion();
     }
 
-    private MavenResolvedArtifact getMavenResolvedArtifact(final String gav) {
+    private MavenResolvedArtifact[] getMavenResolvedArtifact(final String gav) {
         return Maven //
                 .configureResolver() //
                 .fromFile(settingsFile) //
                 .resolve(gav) //
                 .withTransitivity()
-                .asSingleResolvedArtifact();
+                .asResolvedArtifact();
     }
 
-    private File getArtifact(final String gav) {
+    private File[] getArtifact(final String gav) {
         return Maven //
                 .configureResolver() //
                 .fromFile(settingsFile) //
                 .resolve(gav) //
                 .withTransitivity() //
-                .asSingleFile();
+                .asFile();
     }
 
-    private void saveInRepo(final MavenResolvedArtifact mavenResolvedArtifact, final File file) {
-        final String basePath = file.toPath().toFile().getParentFile().toString().replaceFirst(localMavenRepository, outputDirectory);
-        if(!Paths.get(basePath).toFile().exists()){
-            Paths.get(basePath).toFile().mkdir();
-        }
-        try {
-            FileUtils.copyDirectory(Paths.get(file.getParent()).toFile(), Paths.get(basePath + "/").toFile());
-        } catch(Exception e){
-            e.printStackTrace();
+    private void saveInRepo(final File... files) {
+        for(File file : files){
+            final String basePath = file.toPath().toFile().getParentFile().toString().replaceFirst(localMavenRepository, outputDirectory);
+            if(!Paths.get(basePath).toFile().exists()){
+                Paths.get(basePath).toFile().mkdir();
+            }
+            try {
+                FileUtils.copyDirectory(Paths.get(file.getParent()).toFile(), Paths.get(basePath + "/").toFile());
+            } catch(Exception e){
+                e.printStackTrace();
+            }
         }
     }
 
