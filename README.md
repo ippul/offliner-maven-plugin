@@ -8,6 +8,7 @@ usage example
    <version>1.0-SNAPSHOT</version>
    <executions>
       <execution>
+         <phase>prepare-package</phase>
          <goals>
             <goal>offliner</goal>
          </goals>
