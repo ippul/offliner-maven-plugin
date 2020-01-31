@@ -61,31 +61,19 @@ public class OfflinerMojo extends AbstractMojo {
             outputDirectory = project.getBasedir().toPath().toString() + "/target/classes/repository/";
             Paths.get(outputDirectory).toFile().mkdir();
         }
+        
         System.setProperty("maven.repo.local", outputDirectory);
-        getLog().info("Start populating " + outputDirectory + "maven repository");
-        readDependecies(getMavenResolvedArtifact(artifacts));
-        getLog().info("End populating " + outputDirectory + "maven repository");
-    }
 
-    private void readDependecies(final MavenArtifactInfo... artifacts) {
-        for (final MavenArtifactInfo artifact : artifacts) {
-            getLog().info("Downloading " + getGav(artifact) + " to " + outputDirectory);
-            populateMavenRepository(getGav(artifact));
-            readDependecies(artifact.getDependencies());
-        }
-    }
-
-    private String getGav(final MavenArtifactInfo artifact) {
-        return artifact.getCoordinate().getGroupId() + ":" + //
-                artifact.getCoordinate().getArtifactId() + ":" + //
-                artifact.getCoordinate().getVersion();
+        getLog().info("Start populating " + outputDirectory + " maven repository");
+        getMavenResolvedArtifact(artifacts);
+        getLog().info("End populating " + outputDirectory + " maven repository");
     }
 
     private MavenResolvedArtifact[] getMavenResolvedArtifact(final List<String> gavs) {
         MavenResolvedArtifact[] result = null;
         for (final String gav : gavs) {
             if(settingsFile!= null && !settingsFile.isEmpty()) {
-                getLog().debug("getMavenResolvedArtifact using provided settings.xml for GAV " + gav);
+                getLog().debug("getMavenResolvedArtifact using provided settings.xml("+ settingsFile +") for GAV " + gav);
                 result = ArrayUtils.addAll(result, Maven //
                     .configureResolver() //
                     .fromFile(settingsFile) //
@@ -100,15 +88,5 @@ public class OfflinerMojo extends AbstractMojo {
             }
         }
         return result;
-    }
-
-    private void populateMavenRepository(final String gav) {
-        if(settingsFile!= null && !settingsFile.isEmpty()) {
-            getLog().debug("populateMavenRepository(" + outputDirectory + ") using provided settings.xml for GAV " + gav);
-            Maven.configureResolver().fromFile(settingsFile).resolve(gav).withTransitivity().asFile();
-        }else{
-            getLog().debug("populateMavenRepository(" + outputDirectory + ") using default settings.xml for GAV " + gav);
-            Maven.configureResolver().resolve(gav).withTransitivity().asFile();
-        }
     }
 }
