@@ -27,11 +27,9 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.cli.CommandLineUtils;
 import org.jboss.shrinkwrap.resolver.api.maven.Maven;
-import org.jboss.shrinkwrap.resolver.api.maven.MavenArtifactInfo;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenResolvedArtifact;
-import org.jboss.shrinkwrap.resolver.api.maven.MavenResolverSystem;
-import org.jboss.shrinkwrap.resolver.api.maven.MavenStrategyStage;
 
 /**
  * @author cluppi@redhat.com
@@ -62,8 +60,29 @@ public class OfflinerMojo extends AbstractMojo {
             Paths.get(outputDirectory).toFile().mkdir();
         }
         
+        if (System.getProperties().containsKey("sun.java.command")) {
+            try {
+                final String[] parsedMavenCommand = CommandLineUtils.translateCommandline(System.getProperty("sun.java.command"));
+                for(int count = 0; count < parsedMavenCommand.length; count++){
+                    final String s = parsedMavenCommand[count];
+                    if(s.equals("-s") || s.equals("--settings")) {
+                        final String settingFileFromCommandline = parsedMavenCommand[++count];
+                        if(settingsFile != null && !settingsFile.isEmpty()){
+                            getLog().warn("Overriding settings.xml path from commandline new path is " + settingFileFromCommandline);
+                        }else{
+                            getLog().info("Setting settings.xml path from commandline " + settingFileFromCommandline);
+                        }
+                        settingsFile = settingFileFromCommandline;
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        
         System.setProperty("maven.repo.local", outputDirectory);
-
+        
         getLog().info("Start populating " + outputDirectory + " maven repository");
         getMavenResolvedArtifact(artifacts);
         getLog().info("End populating " + outputDirectory + " maven repository");
